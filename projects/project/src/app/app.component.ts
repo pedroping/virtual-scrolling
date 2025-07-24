@@ -9,13 +9,12 @@ import {
   standalone: true,
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
-  hostDirectives: [StaticVirtualScrollingDirective],
-  imports: [StaticElementDirective],
+  imports: [StaticElementDirective, StaticVirtualScrollingDirective],
 })
 export class AppComponent {
   title = 'project';
 
-  data = Array.from({ length: 200 }).map((_) => ({ data: 'Test' }));
+  data = Array.from({ length: 200 }).map((_, i) => ({ data: 'Test ' + i }));
 }
 
 /*
