@@ -1,7 +1,18 @@
-<div class="virtual-scrolling" appStaticVirtualScrolling>
+<!-- 
+  Static vitual scroll
+  <div class="virtual-scrolling" appStaticVirtualScrolling>
   @for (item of data; track $index) {
   <div class="data" *appStaticElement>
     {{ item.data }}
   </div>
   }
+</div> 
+-->
+
+<div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="{ data }">
+  <ng-template #tmp let-item="item">
+    <div class="data">
+      {{ item.data }}
+    </div>
+  </ng-template>
 </div>

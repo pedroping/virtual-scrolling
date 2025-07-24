@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import {
+  DynamicVirtualScrollingDirective,
   StaticElementDirective,
   StaticVirtualScrollingDirective,
 } from '@virtual-scrolling';
@@ -9,7 +10,12 @@ import {
   standalone: true,
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
-  imports: [StaticElementDirective, StaticVirtualScrollingDirective],
+  imports: [
+    // StaticElementDirective,
+    // StaticVirtualScrollingDirective,
+    
+    DynamicVirtualScrollingDirective,
+  ],
 })
 export class AppComponent {
   title = 'project';
