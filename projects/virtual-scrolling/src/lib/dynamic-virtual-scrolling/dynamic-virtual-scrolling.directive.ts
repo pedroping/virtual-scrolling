@@ -1,9 +1,7 @@
 import {
   contentChild,
   Directive,
-  effect,
   ElementRef,
-  EmbeddedViewRef,
   inject,
   input,
   OnInit,
@@ -27,10 +25,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
   startPostion: number = 0;
   endPosition: number = 0;
   templateHeights = new Map<number, { height: number; start: number }>();
-
-  constructor() {
-    effect(() => {});
-  }
 
   ngOnInit(): void {
     const initialScrollTop = this.element.parentElement!.scrollTop;
@@ -64,7 +58,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
       if (i == 0) {
         element.style.top = '10px';
         this.element.style.minHeight =
-          element.offsetHeight * data.length + 10 * data.length + 'px';
+          element.offsetHeight * data.length + 10 * data.length + 10 + 'px';
         this.templateHeights.set(i, {
           height: element.offsetHeight,
           start: 10,
@@ -102,6 +96,8 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
       const el = this.templateHeights.get(i);
 
       if (el) {
+        if (el.start > this.endPosition) break;
+
         const ref = this.vcr().createEmbeddedView(this.template()!, {
           item: data[i],
         });
