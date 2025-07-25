@@ -24,10 +24,6 @@ export class AppComponent {
 }
 
 /*
-  1 - create an array with a lot of messages and with diferent sizes 
-  
-  2.1 - render all the list on the start and hide all elements outside the viewport 
-  2.2 - render just the list on the viewport and create an imaginary number to the height like the twitter
-
-  3 - create the directive the remove the component reference and add an generic one 
+  1 - pegar a posição do ultimo element e começar a criar os proximos 
+  2 - salvar index do primeiro e do ultimo pra facilitar criar os parceiros
 */

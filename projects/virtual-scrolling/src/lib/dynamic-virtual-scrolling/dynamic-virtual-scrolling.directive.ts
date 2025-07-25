@@ -26,12 +26,10 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
 
   startPostion: number = 0;
   endPosition: number = 0;
-  templateRefs = new Map<number, EmbeddedViewRef<unknown>>();
+  templateHeights = new Map<number, { height: number; start: number }>();
 
   constructor() {
-    effect(() => {
-      this.createData(this.contentData()['data']);
-    });
+    effect(() => {});
   }
 
   ngOnInit(): void {
@@ -41,6 +39,8 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
     this.startPostion = Math.floor(initialScrollTop);
     this.endPosition = Math.floor(initalHeight + initialScrollTop);
 
+    this.startElements();
+
     this.element.parentElement!.addEventListener('scroll', (e) => {
       const scrollTop = this.element.parentElement!.scrollTop;
       const height = this.element.parentElement!.offsetHeight;
@@ -48,124 +48,100 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
       this.startPostion = Math.floor(scrollTop);
       this.endPosition = Math.floor(height + scrollTop);
 
-      this.onScrolEvent();
+      this.onScroll();
     });
   }
 
-  onScrolEvent() {
+  startElements() {
     const data = this.contentData()['data'];
 
-    this.vcr().clear();
-
-
-    const defaultRef = this.vcr().createEmbeddedView(this.template()!, {
-      item: data[0],
-    });
-    (defaultRef.rootNodes[0] as HTMLElement).style.position = 'absolute';
-    (defaultRef.rootNodes[0] as HTMLElement).style.top = '0px';
-
-    this.templateRefs.set(0, defaultRef);
-
-    
-
     for (let i = 0; i < data.length; i++) {
-      const prevElementRef = this.templateRefs.get(i - 1);
+      const ref = this.vcr().createEmbeddedView(this.template()!, {
+        item: data[i],
+      });
+      const element = ref.rootNodes[0] as HTMLElement;
 
-      if (!prevElementRef) {
-        continue;
-      }
-
-      const element = prevElementRef.rootNodes[0] as HTMLElement;
-
-      const elementTop =
-        element.offsetHeight +
-        10 +
-        Number(element.style.top?.replace('px', '') || '');
-      const elementEnd = elementTop + element.offsetHeight;
-
-      if (elementTop < this.endPosition) {
-        if (elementEnd < this.startPostion) {
-          console.log(
-            elementTop,
-            elementEnd,
-            this.startPostion,
-            this.endPosition,
-            data[i]
-          );
-          this.templateRefs.delete(i);
-          continue;
-        }
-
-        const ref = this.vcr().createEmbeddedView(this.template()!, {
-          item: data[i],
+      if (i == 0) {
+        element.style.top = '10px';
+        this.element.style.minHeight =
+          element.offsetHeight * data.length + 10 * data.length + 'px';
+        this.templateHeights.set(i, {
+          height: element.offsetHeight,
+          start: 10,
         });
-        (ref.rootNodes[0] as HTMLElement).style.position = 'absolute';
-        (ref.rootNodes[0] as HTMLElement).style.top = elementTop + 'px';
 
-        this.templateRefs.set(i, ref);
         continue;
       }
 
-      break;
+      const prevHeight = this.getPrevElmsHeights(i - 1);
+      element.style.top = prevHeight + 10 + 'px';
+
+      this.templateHeights.set(i, {
+        height: element.offsetHeight,
+        start: prevHeight + 10,
+      });
+
+      const rect = element.getBoundingClientRect();
+
+      if (rect.top > this.endPosition) return;
     }
   }
 
-  createData(data: T[]) {
-    if (data.length == 0) return;
+  onScroll() {
+    const data = this.contentData()['data'];
 
-    const first = data[0];
+    console.log(this.startPostion, this.endPosition, this.templateHeights);
 
-    const defaultRef = this.vcr().createEmbeddedView(this.template()!, {
-      item: first,
-    });
+    const startIndex = Array.from(this.templateHeights).find(
+      ([_, el]) => el.start + el.height > this.startPostion
+    );
 
-    const rootElement = defaultRef.rootNodes[0] as HTMLElement;
-    rootElement.id = 'basic-element';
-    const rect = rootElement.getBoundingClientRect();
+    if (!startIndex) return;
 
-    const height = Math.floor(rect.height * data.length + 10 * data.length);
+    const key = startIndex[0];
 
-    this.element.style.height = height + 'px';
-    this.element.style.minHeight = height + 'px';
+    this.vcr().clear();
 
-    (defaultRef.rootNodes[0] as HTMLElement).style.position = 'absolute';
-    (defaultRef.rootNodes[0] as HTMLElement).style.top = '0px';
+    for (let i = key; i < data.length; i++) {
+      const el = this.templateHeights.get(i);
 
-    this.templateRefs.set(0, defaultRef);
+      if (el) {
+        const ref = this.vcr().createEmbeddedView(this.template()!, {
+          item: data[i],
+        });
+        const element = ref.rootNodes[0] as HTMLElement;
+        element.style.top = el.start + 'px';
 
-    for (let i = 1; i < data.length; i++) {
-      console.log(this.templateRefs, i);
-
-      const prevElementRef = this.templateRefs.get(i - 1);
-
-      if (!prevElementRef) {
         continue;
       }
 
       const ref = this.vcr().createEmbeddedView(this.template()!, {
         item: data[i],
       });
-      const element = prevElementRef.rootNodes[0] as HTMLElement;
+      const element = ref.rootNodes[0] as HTMLElement;
 
-      (ref.rootNodes[0] as HTMLElement).style.position = 'absolute';
+      const prevHeight = this.getPrevElmsHeights(i - 1);
+      element.style.top = prevHeight + 10 + 'px';
 
-      const elementTop =
-        element.offsetHeight +
-        10 +
-        Number(element.style.top?.replace('px', '') || '');
-      const elementEnd = elementTop + element.offsetHeight;
+      const rect = element.getBoundingClientRect();
 
-      console.log(elementTop, elementEnd, this.startPostion, this.endPosition);
+      console.log(rect.top, this.endPosition);
 
-      (ref.rootNodes[0] as HTMLElement).style.top = elementTop + 'px';
+      if (rect.top > this.endPosition || rect.top < this.startPostion) break;
 
-      if (elementTop < this.endPosition) {
-        this.templateRefs.set(i, ref);
-        continue;
-      }
-
-      this.vcr().remove(this.vcr().indexOf(ref));
-      break;
+      this.templateHeights.set(i, {
+        height: element.offsetHeight,
+        start: prevHeight + 10,
+      });
     }
+  }
+
+  getPrevElmsHeights(key: number) {
+    let height = 0;
+
+    for (let i = 0; i <= key; i++)
+      height += (this.templateHeights.get(i)?.height ?? 0) + 10;
+
+    return height;
   }
 }
