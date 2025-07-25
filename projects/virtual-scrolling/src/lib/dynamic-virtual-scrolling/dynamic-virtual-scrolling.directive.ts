@@ -90,15 +90,11 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
   onScroll() {
     const data = this.contentData()['data'];
 
-    console.log(this.startPostion, this.endPosition, this.templateHeights);
-
     const startIndex = Array.from(this.templateHeights).find(
-      ([_, el]) => el.start + el.height > this.startPostion
+      ([_, el]) => el.start + el.height >= this.startPostion
     );
 
-    if (!startIndex) return;
-
-    const key = startIndex[0];
+    const key = startIndex?.[0] ?? this.templateHeights.size - 1;
 
     this.vcr().clear();
 
@@ -125,9 +121,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
 
       const rect = element.getBoundingClientRect();
 
-      console.log(rect.top, this.endPosition);
-
-      if (rect.top > this.endPosition || rect.top < this.startPostion) break;
+      if (rect.top > this.endPosition) break;
 
       this.templateHeights.set(i, {
         height: element.offsetHeight,
