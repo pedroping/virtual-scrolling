@@ -1,11 +1,11 @@
 import {
-  AfterViewInit,
   Directive,
   ElementRef,
   EmbeddedViewRef,
   inject,
+  OnInit,
   TemplateRef,
-  ViewContainerRef,
+  ViewContainerRef
 } from '@angular/core';
 import { StaticVirtualScrollingDirective } from '@virtual-scrolling';
 import { take, throttleTime } from 'rxjs';
@@ -14,7 +14,7 @@ import { take, throttleTime } from 'rxjs';
   selector: '[appStaticElement]',
   standalone: true,
 })
-export class StaticElementDirective implements AfterViewInit {
+export class StaticElementDirective implements OnInit {
   private templateRef = inject(TemplateRef);
   private vcr = inject(ViewContainerRef);
   private staticVirtualScrollingDirective = inject(
@@ -26,7 +26,7 @@ export class StaticElementDirective implements AfterViewInit {
   start?: number;
   ref?: EmbeddedViewRef<any>;
 
-  ngAfterViewInit(): void {
+  ngOnInit(): void {
     this.createElement();
     this.staticVirtualScrollingDirective.startElements$
       .pipe(take(1))

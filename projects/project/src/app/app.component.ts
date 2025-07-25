@@ -3,13 +3,18 @@ import {
   StaticElementDirective,
   StaticVirtualScrollingDirective,
 } from '@virtual-scrolling';
+import { TestComponentComponent } from '../test-component/test-component.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
-  imports: [StaticElementDirective, StaticVirtualScrollingDirective],
+  imports: [
+    StaticElementDirective,
+    StaticVirtualScrollingDirective,
+    TestComponentComponent,
+  ],
 })
 export class AppComponent {
   title = 'project';
