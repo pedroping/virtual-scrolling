@@ -9,10 +9,15 @@
 </div> 
 -->
 
-<div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="{ data }">
+<div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
     <div class="data">
       {{ item.data }}
     </div>
   </ng-template>
 </div>
+
+
+<button (click)="changeData()">Change data</button>
+<button (click)="changeData2()">Change data 2</button>
+<button (click)="addData()">Add data</button>

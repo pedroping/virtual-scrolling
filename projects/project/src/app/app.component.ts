@@ -1,29 +1,41 @@
-import { Component } from '@angular/core';
-import {
-  DynamicVirtualScrollingDirective,
-  StaticElementDirective,
-  StaticVirtualScrollingDirective,
-} from '@virtual-scrolling';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { DynamicVirtualScrollingDirective } from '@virtual-scrolling';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
-  imports: [
-    // StaticElementDirective,
-    // StaticVirtualScrollingDirective,
-    
-    DynamicVirtualScrollingDirective,
-  ],
+  imports: [DynamicVirtualScrollingDirective],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
   title = 'project';
 
-  data = Array.from({ length: 200 }).map((_, i) => ({ data: 'Test ' + i }));
-}
+  data = signal(
+    Array.from({ length: 50 }).map((_, i) => ({
+      data: 'Test ' + (i + 1),
+      id: i,
+    }))
+  );
 
-/*
-  1 - pegar a posição do ultimo element e começar a criar os proximos 
-  2 - salvar index do primeiro e do ultimo pra facilitar criar os parceiros
-*/
+  changeData() {
+    this.data.update((data) => {
+      data.pop();
+      return [...data];
+    });
+  }
+
+  changeData2() {
+    this.data.update((data) => {
+      data.shift();
+      return [...data];
+    });
+  }
+
+  addData() {
+    this.data.update((data) => {
+      return [...data, { data: 'Test 51', id: data.length }];
+    });
+  }
+}
