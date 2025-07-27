@@ -1,14 +1,3 @@
-<!-- 
-  Static vitual scroll
-  <div class="virtual-scrolling" appStaticVirtualScrolling>
-  @for (item of data; track $index) {
-  <div class="data" *appStaticElement>
-    {{ item.data }}
-  </div>
-  }
-</div> 
--->
-
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
     <div class="data">
@@ -18,6 +7,6 @@
 </div>
 
 
-<button (click)="changeData()">Change data</button>
-<button (click)="changeData2()">Change data 2</button>
+<button (click)="changeData2()">Change data Top</button>
+<button (click)="changeData()">Change data Bottom</button>
 <button (click)="addData()">Add data</button>
