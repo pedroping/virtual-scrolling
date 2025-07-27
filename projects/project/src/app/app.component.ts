@@ -47,3 +47,10 @@ export class AppComponent {
     });
   }
 }
+
+
+/* 
+  Things to do next: 
+  1 - handle elemnts with reference instead of id to avoid the necessity of sequencial ids  
+  2 - maybe replicate ngFor funcionality 
+*/
