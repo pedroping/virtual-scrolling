@@ -35,7 +35,15 @@ export class AppComponent {
 
   addData() {
     this.data.update((data) => {
-      return [...data, { data: 'Test 51', id: data.length }];
+      const lastId = data[data.length - 1].id + 1;
+
+      return [
+        ...data,
+        {
+          data: 'Test 51',
+          id: lastId,
+        },
+      ];
     });
   }
 }
