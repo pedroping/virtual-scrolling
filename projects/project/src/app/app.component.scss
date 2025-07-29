@@ -19,12 +19,17 @@
 
 .data {
   height: 300px;
-  background-color: azure;
-  border: 1px solid black;
-  border-radius: 10px;
   width: 100%;
   position: absolute;
   will-change: top;
+  padding: 5px 2px;
+
+  .inner {
+    height: 100%;
+    background-color: azure;
+    border-radius: 10px;
+    border: 1px solid black;
+  }
 }
 
 button {

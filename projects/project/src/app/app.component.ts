@@ -13,7 +13,7 @@ export class AppComponent {
   title = 'project';
 
   data = signal(
-    Array.from({ length: 50 }).map((_, i) => ({
+    Array.from({ length: 1000 }).map((_, i) => ({
       data: 'Test ' + (i + 1),
       id: i,
     }))
@@ -50,7 +50,12 @@ export class AppComponent {
 
 
 /* 
-  Things to do next: 
-  1 - handle elemnts with reference instead of id to avoid the necessity of sequencial ids  
-  2 - maybe replicate ngFor funcionality 
+  Things to do:
+    Refactor all scroll system, create an new wrapper that will contain the actual position, and calc based on the scroll and on the smallest 
+    the element that will be rendered and always recalc the avarege size to calca the total height
+  
+  https://github.com/angular/components/blob/main/src/cdk-experimental/scrolling/auto-size-virtual-scroll.ts#L339
+  https://github.com/angular/components/blob/main/src/cdk/scrolling/virtual-for-of.ts
+  https://stackblitz.com/edit/xtyef8ek-u1p1ufrk?file=src%2Fexample%2Fcdk-virtual-scroll-data-source-example.ts,src%2Fexample%2Fcdk-virtual-scroll-data-source-example.css
+  https://stackblitz.com/edit/u8d8capn-k6s3gbfz?file=src%2Fexample%2Fcdk-virtual-scroll-append-only-example.ts,src%2Fexample%2Fcdk-virtual-scroll-append-only-example.css,src%2Fexample%2Fcdk-virtual-scroll-append-only-example.html
 */

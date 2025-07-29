@@ -2,233 +2,93 @@ import {
   contentChild,
   Directive,
   ElementRef,
-  EmbeddedViewRef,
   inject,
   input,
-  OnChanges,
   OnInit,
-  SimpleChanges,
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
+import { fromEvent, timer } from 'rxjs';
+import { auditTime, take } from 'rxjs/operators';
 
 @Directive({
   selector: '[appDynamicVirtualScrolling]',
   standalone: true,
 })
-export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
+export class DynamicVirtualScrollingDirective<T> implements OnInit {
   element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-
-  template = contentChild(TemplateRef);
+  template = contentChild.required(TemplateRef);
   vcr = contentChild.required(TemplateRef, { read: ViewContainerRef });
-  totalHeight: number = 0;
-
-  startPostion: number = 0;
-  endPosition: number = 0;
 
   contentData = input.required<(T & { id: number })[]>();
-  templateRefs = new Map<
-    number,
-    {
-      element: T & { id: number };
-      height: number;
-      start: number;
-      ref: EmbeddedViewRef<unknown>;
-      onScreen?: boolean;
-    }
-  >();
+  itemHeight = 300;
+  buffer = 1;
 
   ngOnInit(): void {
-    const initialScrollTop = this.element.parentElement!.scrollTop;
-    const initalHeight = this.element.parentElement!.offsetHeight;
+    this.setContainerHeight();
 
-    this.startPostion = Math.floor(initialScrollTop);
-    this.endPosition = Math.floor(initalHeight + initialScrollTop);
+    fromEvent(this.element.parentElement!, 'scroll')
+      .pipe(auditTime(16))
+      .subscribe(() => this.renderVisibleItems());
 
-    this.startElements();
-
-    this.element.parentElement!.addEventListener('scroll', (e) => {
-      const scrollTop = this.element.parentElement!.scrollTop;
-      const height = this.element.parentElement!.offsetHeight;
-
-      this.startPostion = Math.floor(scrollTop);
-      this.endPosition = Math.floor(height + scrollTop);
-
-      this.onScroll();
-    });
+    this.renderVisibleItems();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['contentData'] && !changes['contentData'].firstChange) {
-      let removeChange = false;
-
-      this.templateRefs.forEach((el) => {
-        const hasElement = !!this.contentData().find(
-          (dataEl) => dataEl.id === el.element.id
-        );
-
-        if (!hasElement) {
-          const oldRef = this.templateRefs.get(el.element.id);
-
-          this.templateRefs.delete(el.element.id);
-
-          this.templateRefs.forEach((elRef) => {
-            if (el.element.id >= elRef.element.id) return;
-
-            oldRef?.start ? (elRef.start -= oldRef.height + 10) : 0;
-
-            elRef.start = Math.max(elRef.start, 10);
-          });
-
-          this.element.parentElement!.scrollTop -= oldRef?.height
-            ? oldRef.height + 10
-            : 0;
-          removeChange = true;
-        }
-      });
-
-      this.setHeight();
-
-      if (removeChange) return this.onScroll();
-    }
+  private setContainerHeight() {
+    const totalHeight = this.contentData().length * this.itemHeight;
+    this.element.style.position = 'relative';
+    this.element.style.minHeight = `${totalHeight}px`;
   }
 
-  setHeight() {
-    const first = Array.from(this.templateRefs)[0];
+  private renderVisibleItems() {
+    this.vcr().clear();
 
-    if (!first?.[1]) return;
+    const parent = this.element.parentElement!;
+    const scrollTop = parent.scrollTop;
+    const viewportHeight = parent.offsetHeight;
 
-    const elemenstsLenght = this.contentData().length;
-
-    this.element.style.minHeight =
-      first[1].height * elemenstsLenght + 10 * elemenstsLenght + 10 + 'px';
-  }
-
-  startElements() {
-    this.clearData();
-
-    const data = this.contentData();
-
-    for (let i = 0; i < data.length; i++) {
-      const ref = this.vcr().createEmbeddedView(this.template()!, {
-        item: data[i],
-      });
-      const element = ref.rootNodes[0] as HTMLElement;
-
-      if (i == 0) {
-        element.style.top = '10px';
-
-        this.element.style.minHeight =
-          element.offsetHeight * data.length + 10 * data.length + 10 + 'px';
-
-        this.templateRefs.set(data[i].id, {
-          element: data[i],
-          height: element.offsetHeight,
-          start: 20,
-          onScreen: true,
-          ref,
-        });
-
-        continue;
-      }
-
-      const prevHeight = this.getPrevElmsHeights(Math.max(data[i].id - 1, 0));
-
-      element.style.top = prevHeight + 10 + 'px';
-
-      this.templateRefs.set(data[i].id, {
-        element: data[i],
-        height: element.offsetHeight,
-        start: prevHeight + 10,
-        onScreen: true,
-        ref,
-      });
-
-      const rect = element.getBoundingClientRect();
-
-      if (rect.top > this.endPosition) return;
-    }
-  }
-
-  onScroll() {
-    const data = this.contentData();
-
-    const startIndex = Array.from(this.templateRefs).find(
-      ([_, el]) => el.start + el.height >= this.startPostion
+    const startIndex = Math.max(
+      0,
+      Math.floor(scrollTop / this.itemHeight) - this.buffer
+    );
+    const endIndex = Math.min(
+      this.contentData().length,
+      Math.ceil((scrollTop + viewportHeight) / this.itemHeight) + this.buffer
     );
 
-    const id = data.findIndex((el) => el.id == startIndex?.[0]);
+    for (let i = startIndex; i < endIndex; i++) {
+      const context = { item: this.contentData()[i] };
+      const view = this.vcr().createEmbeddedView(this.template(), context);
+      const el = view.rootNodes[0] as HTMLElement;
 
-    const key = id > -1 ? id : Math.max(this.templateRefs.size - 1, 0);
+      el.style.top = `${i * this.itemHeight}px`;
+      el.style.position = 'absolute';
+      el.style.width = '100%';
 
-    this.clearData();
+      el.setAttribute('scrollabe-element', 'true');
 
-    for (let i = key; i < data.length; i++) {
-      if (!data[i]) return;
-      const el = this.templateRefs.get(data[i].id);
+      // if (i == this.contentData().length - 1) {
+      //   console.log('here');
+      // }
+    }
 
-      if (el) {
-        if (el.start > this.endPosition) break;
+    timer(1)
+      .pipe(take(1))
+      .subscribe(() => {
+        const els = Array.from(
+          this.element.querySelectorAll('[scrollabe-element="true"]')
+        ).map((el) => (el as HTMLElement).offsetHeight);
 
-        const ref = this.vcr().createEmbeddedView(this.template()!, {
-          item: data[i],
-        });
-        const element = ref.rootNodes[0] as HTMLElement;
-        element.style.top = el.start + 'px';
+        if (els.length == 0) return;
 
-        if (i === 0) {
-          element.style.top = '10px';
+        const minHeight = Math.min(...els);
 
-          this.templateRefs.set(data[i].id, {
-            element: data[i],
-            height: element.offsetHeight,
-            start: 20,
-            onScreen: true,
-            ref,
-          });
+        if (minHeight > this.itemHeight) {
+          this.itemHeight = minHeight;
+          console.log(this.itemHeight);
+
+          this.renderVisibleItems();
         }
-
-        el.onScreen = true;
-
-        continue;
-      }
-
-      const ref = this.vcr().createEmbeddedView(this.template()!, {
-        item: data[i],
       });
-      const element = ref.rootNodes[0] as HTMLElement;
-
-      const prevHeight = this.getPrevElmsHeights(Math.max(data[i].id - 1, 0));
-
-      element.style.top = prevHeight + 10 + 'px';
-
-      const rect = element.getBoundingClientRect();
-
-      this.templateRefs.set(data[i].id, {
-        element: data[i],
-        height: element.offsetHeight,
-        start: prevHeight + 10,
-        onScreen: true,
-        ref,
-      });
-
-      if (rect.top > this.endPosition) break;
-    }
-  }
-
-  clearData(remove = true) {
-    this.templateRefs.forEach((el) => (el.onScreen = false));
-    if (remove) this.vcr().clear();
-  }
-
-  getPrevElmsHeights(key: number) {
-    let height = 0;
-
-    for (let i = 0; i <= key; i++) {
-      const el = this.templateRefs.get(i);
-      height += el?.height ? el.height + 10 : 0;
-    }
-
-    return height;
   }
 }

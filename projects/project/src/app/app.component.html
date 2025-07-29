@@ -1,10 +1,21 @@
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
     <div class="data">
-      {{ item.data }}
+      <div class="inner">
+        {{ item.data }}
+      </div>
     </div>
   </ng-template>
 </div>
+
+<!-- <div class="virtual-scrolling" style="height: 100%;">
+  @for (item of data(); track $index) {
+  <div class="data" style="position: static; min-height: 300px;">
+    {{ item.data }}
+  </div>
+  }
+</div> -->
+
 
 
 <button (click)="changeData2()">Change data Top</button>
