@@ -2,93 +2,151 @@ import {
   contentChild,
   Directive,
   ElementRef,
+  EmbeddedViewRef,
   inject,
   input,
   OnInit,
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
-import { fromEvent, timer } from 'rxjs';
-import { auditTime, take } from 'rxjs/operators';
+import { fromEvent } from 'rxjs';
+import { auditTime } from 'rxjs/operators';
 
 @Directive({
   selector: '[appDynamicVirtualScrolling]',
   standalone: true,
 })
 export class DynamicVirtualScrollingDirective<T> implements OnInit {
-  element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  template = contentChild.required(TemplateRef);
+  host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  templateRef = contentChild.required(TemplateRef);
   vcr = contentChild.required(TemplateRef, { read: ViewContainerRef });
 
   contentData = input.required<(T & { id: number })[]>();
-  itemHeight = 300;
-  buffer = 1;
+  buffer = 2;
+  estimatedInitialHeight = 300;
+  maxDomItems = 100;
+
+  private renderedViews = new Map<number, EmbeddedViewRef<any>>();
+  private itemOffsets: number[] = [];
 
   ngOnInit(): void {
-    this.setContainerHeight();
+    this.setupInitialLoad();
 
-    fromEvent(this.element.parentElement!, 'scroll')
+    fromEvent(this.getScrollParent(), 'scroll')
       .pipe(auditTime(16))
-      .subscribe(() => this.renderVisibleItems());
-
-    this.renderVisibleItems();
+      .subscribe(() => this.handleScroll());
   }
 
-  private setContainerHeight() {
-    const totalHeight = this.contentData().length * this.itemHeight;
-    this.element.style.position = 'relative';
-    this.element.style.minHeight = `${totalHeight}px`;
+  private setupInitialLoad(): void {
+    const parent = this.getScrollParent();
+    const viewportHeight = parent.offsetHeight;
+    const initialCount =
+      Math.ceil(viewportHeight / this.estimatedInitialHeight) * 2;
+
+    this.appendItems(0, initialCount);
   }
 
-  private renderVisibleItems() {
-    this.vcr().clear();
-
-    const parent = this.element.parentElement!;
+  private handleScroll(): void {
+    const parent = this.getScrollParent();
     const scrollTop = parent.scrollTop;
     const viewportHeight = parent.offsetHeight;
 
-    const startIndex = Math.max(
-      0,
-      Math.floor(scrollTop / this.itemHeight) - this.buffer
-    );
-    const endIndex = Math.min(
-      this.contentData().length,
-      Math.ceil((scrollTop + viewportHeight) / this.itemHeight) + this.buffer
-    );
+    const start = scrollTop;
+    const end = scrollTop + viewportHeight;
 
-    for (let i = startIndex; i < endIndex; i++) {
-      const context = { item: this.contentData()[i] };
-      const view = this.vcr().createEmbeddedView(this.template(), context);
-      const el = view.rootNodes[0] as HTMLElement;
+    let currentOffset = 0;
+    for (let i = 0; i < this.contentData().length; i++) {
+      const itemTop = currentOffset;
+      const itemBottom = currentOffset + this.getItemHeight(i);
 
-      el.style.top = `${i * this.itemHeight}px`;
-      el.style.position = 'absolute';
-      el.style.width = '100%';
+      const isVisible =
+        itemBottom >= start - this.buffer * this.estimatedInitialHeight &&
+        itemTop <= end + this.buffer * this.estimatedInitialHeight;
 
-      el.setAttribute('scrollabe-element', 'true');
+      const alreadyRendered = this.renderedViews.has(i);
 
-      // if (i == this.contentData().length - 1) {
-      //   console.log('here');
-      // }
+      if (isVisible && !alreadyRendered) {
+        this.renderItem(i);
+      } else if (!isVisible && alreadyRendered) {
+        this.removeItem(i);
+      }
+
+      currentOffset = itemBottom;
     }
 
-    timer(1)
-      .pipe(take(1))
-      .subscribe(() => {
-        const els = Array.from(
-          this.element.querySelectorAll('[scrollabe-element="true"]')
-        ).map((el) => (el as HTMLElement).offsetHeight);
+    this.updateContainerHeight();
+  }
 
-        if (els.length == 0) return;
+  private renderItem(index: number): void {
+    const data = this.contentData();
+    if (index >= data.length) return;
 
-        const minHeight = Math.min(...els);
+    const view = this.vcr().createEmbeddedView(this.templateRef(), {
+      item: data[index],
+    });
 
-        if (minHeight > this.itemHeight) {
-          this.itemHeight = minHeight;
-          console.log(this.itemHeight);
+    const el = view.rootNodes[0] as HTMLElement;
+    el.style.position = 'absolute';
+    el.style.top = `${this.calculateItemTop(index)}px`;
+    el.style.width = '100%';
+    el.setAttribute('lazy-scroll-element', 'true');
 
-          this.renderVisibleItems();
-        }
-      });
+    this.renderedViews.set(index, view);
+
+    this.itemOffsets[index] = el.offsetHeight || this.estimatedInitialHeight;
+
+    this.cleanupExcessDom();
+  }
+
+  private removeItem(index: number): void {
+    const view = this.renderedViews.get(index);
+    if (view) {
+      const idx = this.vcr().indexOf(view);
+      if (idx > -1) {
+        this.vcr().remove(idx);
+      }
+      this.renderedViews.delete(index);
+    }
+  }
+
+  private cleanupExcessDom(): void {
+    if (this.renderedViews.size <= this.maxDomItems) return;
+
+    const sorted = Array.from(this.renderedViews.keys()).sort((a, b) => a - b);
+    while (this.renderedViews.size > this.maxDomItems) {
+      this.removeItem(sorted.shift()!);
+    }
+  }
+
+  private calculateItemTop(index: number): number {
+    let top = 0;
+    for (let i = 0; i < index; i++) {
+      top += this.getItemHeight(i);
+    }
+    return top;
+  }
+
+  private getItemHeight(index: number): number {
+    return this.itemOffsets[index] || this.estimatedInitialHeight;
+  }
+
+  private updateContainerHeight(): void {
+    const totalHeight = this.itemOffsets.reduce((sum, h) => sum + h, 0);
+    this.host.style.position = 'relative';
+    this.host.style.minHeight = `${totalHeight}px`;
+  }
+
+  private appendItems(start: number, count: number): void {
+    for (
+      let i = start;
+      i < start + count && i < this.contentData().length;
+      i++
+    ) {
+      this.renderItem(i);
+    }
+  }
+
+  private getScrollParent(): HTMLElement {
+    return this.host.parentElement!;
   }
 }
