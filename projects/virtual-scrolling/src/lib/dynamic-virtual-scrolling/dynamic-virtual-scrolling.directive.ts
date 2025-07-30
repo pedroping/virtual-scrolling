@@ -9,7 +9,7 @@ import {
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
-import { fromEvent } from 'rxjs';
+import { fromEvent, timer } from 'rxjs';
 import { auditTime } from 'rxjs/operators';
 
 @Directive({
@@ -31,6 +31,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
 
   ngOnInit(): void {
     this.setupInitialLoad();
+    this.updateContainerHeight();
 
     fromEvent(this.getScrollParent(), 'scroll')
       .pipe(auditTime(16))
@@ -85,17 +86,29 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
       item: data[index],
     });
 
-    const el = view.rootNodes[0] as HTMLElement;
-    el.style.position = 'absolute';
-    el.style.top = `${this.calculateItemTop(index)}px`;
-    el.style.width = '100%';
-    el.setAttribute('lazy-scroll-element', 'true');
+    timer(1).subscribe(() => {
+      const el = view.rootNodes.find((el) => el instanceof HTMLElement);
 
-    this.renderedViews.set(index, view);
+      if (!el) return;
 
-    this.itemOffsets[index] = el.offsetHeight || this.estimatedInitialHeight;
+      el.style.position = 'absolute';
+      el.style.top = `${this.calculateItemTop(index)}px`;
+      el.style.width = '100%';
+      el.setAttribute('lazy-scroll-element', 'true');
 
-    this.cleanupExcessDom();
+      this.renderedViews.set(index, view);
+
+      this.itemOffsets[index] = el.offsetHeight || this.estimatedInitialHeight;
+
+      this.calcAvarageHeight();
+      this.cleanupExcessDom();
+    });
+  }
+
+  private calcAvarageHeight() {
+    this.estimatedInitialHeight = Math.ceil(
+      this.itemOffsets.reduce((sum, h) => sum + h, 0) / this.itemOffsets.length
+    );
   }
 
   private removeItem(index: number): void {
@@ -132,8 +145,19 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
 
   private updateContainerHeight(): void {
     const totalHeight = this.itemOffsets.reduce((sum, h) => sum + h, 0);
+
+    if (this.itemOffsets.length == this.contentData().length) {
+      this.host.style.position = 'relative';
+      this.host.style.minHeight = `${totalHeight}px`;
+      return;
+    }
+
+    const diffHeight =
+      (this.contentData().length - this.itemOffsets.length) / 2;
     this.host.style.position = 'relative';
-    this.host.style.minHeight = `${totalHeight}px`;
+    this.host.style.minHeight = `${
+      totalHeight + diffHeight * this.estimatedInitialHeight
+    }px`;
   }
 
   private appendItems(start: number, count: number): void {
