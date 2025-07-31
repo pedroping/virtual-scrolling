@@ -1,13 +1,13 @@
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
     @if(item.id < 10) {
-      <div class="data" [attr.elementId]="item.id" style="max-height: 300px;">
+      <div class="data" [attr.elementId]="item.id" style="max-height: 300px; position: absolute;">
         <div class="inner" >
           {{ item.data }}
         </div>
       </div>
     } @else {
-      <div class="data" [attr.elementId]="item.id" style="max-height: 150px;">
+      <div class="data" [attr.elementId]="item.id" style="max-height: 150px; position: absolute;">
         <div class="inner" >
           {{ item.data }}
         </div>
