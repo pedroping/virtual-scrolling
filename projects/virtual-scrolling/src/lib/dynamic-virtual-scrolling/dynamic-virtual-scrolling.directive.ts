@@ -170,14 +170,20 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit {
 
     const parent = this.getScrollParent();
 
+    if (isFirst) {
+      this.lastHeight = totalHeight + diffHeight * this.estimatedInitialHeight;
+
+      this.host.style.minHeight = `${this.lastHeight}px`;
+      this.host.style.maxHeight = `${this.lastHeight}px`;
+      return;
+    }
+
     if (
-      Math.ceil(parent.offsetHeight + parent.scrollTop) >=
-        parent.scrollHeight ||
-      isFirst
+      Math.ceil(parent.offsetHeight + parent.scrollTop) >= parent.scrollHeight
     ) {
-      const moreSize = Math.max(
+      const moreSize = Math.min(
         diffHeight * this.estimatedInitialHeight,
-        Math.ceil(totalHeight * 0.2)
+        Math.ceil(totalHeight * 0.1)
       );
       this.lastHeight = totalHeight + moreSize;
 
