@@ -14,6 +14,8 @@ import {
 import { fromEvent, timer } from 'rxjs';
 import { auditTime } from 'rxjs/operators';
 
+type IElement<T> = T & { id: number };
+
 @Directive({
   selector: '[appDynamicVirtualScrolling]',
   standalone: true,
@@ -23,7 +25,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   templateRef = contentChild.required(TemplateRef);
   vcr = contentChild.required(TemplateRef, { read: ViewContainerRef });
 
-  contentData = input.required<(T & { id: number })[]>();
+  contentData = input.required<IElement<T>[]>();
   estimatedInitialHeight = 300;
   biggestElement = 300;
   lastHeight = 0;
@@ -55,7 +57,15 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
         return;
       }
 
-      console.log(change);
+      this.vcr().clear();
+      this.renderedViews.clear();
+      this.itemOffsets.forEach((el, i) => {
+        if (!this.contentData().find((data) => data.id == el.id)) {
+          this.itemOffsets.splice(i, 1);
+        }
+      });
+
+      this.handleScroll();
     }
   }
 
@@ -130,6 +140,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       if (!el) return;
 
       el.style.transform = `translateY(${this.calculateItemTop(i)}px)`;
+
       el.setAttribute('lazy-scroll-element', 'true');
 
       this.renderedViews.set(id, view);

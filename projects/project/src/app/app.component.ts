@@ -13,12 +13,10 @@ export class AppComponent {
   title = 'project';
 
   data = signal(
-    Array.from({ length: 61 })
-      .map((_, i) => ({
-        data: 'Test ' + (i + 1),
-        id: i,
-      }))
-      .reverse()
+    Array.from({ length: 60 }).map((_, i) => ({
+      data: 'Test ' + (i + 1),
+      id: i,
+    }))
   );
 
   changeData() {
