@@ -47,6 +47,10 @@ button:nth-of-type(2) {
   top: 80px;
 }
 
-button:last-of-type {
+button:nth-of-type(3) {
   top: 110px;
+}
+
+button:last-of-type {
+  top: 140px;
 }

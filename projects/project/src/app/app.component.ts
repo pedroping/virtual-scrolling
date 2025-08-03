@@ -13,10 +13,12 @@ export class AppComponent {
   title = 'project';
 
   data = signal(
-    Array.from({ length: 1000 }).map((_, i) => ({
-      data: 'Test ' + (i + 1),
-      id: i,
-    }))
+    Array.from({ length: 61 })
+      .map((_, i) => ({
+        data: 'Test ' + (i + 1),
+        id: i,
+      }))
+      .reverse()
   );
 
   changeData() {
@@ -35,19 +37,32 @@ export class AppComponent {
 
   addData() {
     this.data.update((data) => {
-      const lastId = data[data.length - 1].id + 1;
+      const lastId = Math.max(...data.map((d) => d.id)) + 1;
+
+      return [
+        {
+          data: 'Test ' + (lastId + 1),
+          id: lastId,
+        },
+        ...data,
+      ];
+    });
+  }
+
+  addData2() {
+    this.data.update((data) => {
+      const lastId = Math.max(...data.map((d) => d.id)) + 1;
 
       return [
         ...data,
         {
-          data: 'Test 51',
+          data: 'Test ' + (lastId + 1),
           id: lastId,
         },
       ];
     });
   }
 }
-
 
 /* 
   Things to do:

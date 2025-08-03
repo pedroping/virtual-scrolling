@@ -1,6 +1,6 @@
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
-    @if(item.id < 10 || item.id >= data().length - 10) {
+    @if(item.id % 2 == 0) {
       <div class="data" [attr.elementId]="item.id" style="max-height: 300px; position: absolute;">
         <div class="inner" >
           {{ item.data }}
@@ -26,6 +26,7 @@
 
 
 
-<button (click)="changeData2()">Change data Top</button>
-<button (click)="changeData()">Change data Bottom</button>
-<button (click)="addData()">Add data</button>
+<button (click)="changeData2()">Remove data Top</button>
+<button (click)="changeData()">Remove data Bottom</button>
+<button (click)="addData()">Add data Top</button>
+<button (click)="addData2()">Add data Bottom</button>
