@@ -5,14 +5,15 @@ import {
   EmbeddedViewRef,
   inject,
   input,
+  NgZone,
   OnChanges,
   OnInit,
   SimpleChanges,
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
-import { fromEvent, timer } from 'rxjs';
-import { auditTime } from 'rxjs/operators';
+import { fromEvent } from 'rxjs';
+import { auditTime, take } from 'rxjs/operators';
 
 type IElement<T> = T & { id: number };
 
@@ -21,7 +22,9 @@ type IElement<T> = T & { id: number };
   standalone: true,
 })
 export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
-  host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly host =
+    inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly ngZone = inject(NgZone);
   templateRef = contentChild.required(TemplateRef);
   vcr = contentChild.required(TemplateRef, { read: ViewContainerRef });
 
@@ -73,12 +76,10 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
         this.lastElementEnd = 0;
 
-        timer(10).subscribe(() => {
-          this.handleScroll();
-          this.getScrollParent().scrollTop +=
-            (change.currentValue.length - change.previousValue.length) *
-            this.estimatedInitialHeight;
-        });
+        this.handleScroll();
+        this.getScrollParent().scrollTop +=
+          (change.currentValue.length - change.previousValue.length) *
+          this.estimatedInitialHeight;
       }
 
       let heightToReduce = 0;
@@ -105,10 +106,8 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       this.vcr().clear();
       this.renderedViews.clear();
 
-      timer(10).subscribe(() => {
-        this.handleScroll();
-        this.getScrollParent().scrollTop -= heightToReduce;
-      });
+      this.handleScroll();
+      this.getScrollParent().scrollTop -= heightToReduce;
     }
   }
 
@@ -170,7 +169,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       currentOffset = itemBottom;
     }
 
-    timer(1).subscribe(() => {
+    this.ngZone.onStable.pipe(take(1)).subscribe(() => {
       this.updateContainerHeight();
     });
   }
@@ -186,7 +185,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       item: dataEl,
     });
 
-    timer(1).subscribe(() => {
+    this.ngZone.onStable.pipe(take(1)).subscribe(() => {
       const el = view.rootNodes.find((el) => el instanceof HTMLElement);
 
       if (!el) return;
