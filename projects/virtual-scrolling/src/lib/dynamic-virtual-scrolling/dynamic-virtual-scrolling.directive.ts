@@ -81,9 +81,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
         });
       }
 
-      this.vcr().clear();
-      this.renderedViews.clear();
-
       let heightToReduce = 0;
 
       Object.keys(this.itemOffsets).forEach((key) => {
@@ -104,6 +101,9 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       });
 
       if (heightToReduce == 0) return;
+
+      this.vcr().clear();
+      this.renderedViews.clear();
 
       timer(10).subscribe(() => {
         this.handleScroll();
