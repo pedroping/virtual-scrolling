@@ -79,8 +79,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
             (change.currentValue.length - change.previousValue.length) *
             this.estimatedInitialHeight;
         });
-
-        return;
       }
 
       this.vcr().clear();
@@ -92,18 +90,25 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
         if (!this.contentData().find((data) => data.id == +key)) {
           const elHeight = this.itemOffsets[+key].offset;
 
+          const elToRemove = this.itemOffsets[+key];
+
           heightToReduce += elHeight;
+
+          Object.keys(this.itemOffsets).forEach((key2) => {
+            if (this.itemOffsets[+key2].index > elToRemove.index)
+              this.itemOffsets[+key2].index -= 1;
+          });
 
           delete this.itemOffsets[+key];
         }
       });
 
-      Object.keys(this.itemOffsets).forEach((key, i) => {
-        this.itemOffsets[+key].index = i;
-      });
+      if (heightToReduce == 0) return;
 
-      this.getScrollParent().scrollTop -= heightToReduce;
-      this.handleScroll();
+      timer(10).subscribe(() => {
+        this.handleScroll();
+        this.getScrollParent().scrollTop -= heightToReduce;
+      });
     }
   }
 
