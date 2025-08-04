@@ -61,6 +61,10 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       this.renderedViews.clear();
       this.itemOffsets.forEach((el, i) => {
         if (!this.contentData().find((data) => data.id == el.id)) {
+          const elHeight = this.itemOffsets[i].offset;
+
+          this.getScrollParent().scrollTop -= elHeight;
+
           this.itemOffsets.splice(i, 1);
         }
       });
