@@ -32,7 +32,8 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   lastElementEnd = 0;
 
   private renderedViews = new Map<number, EmbeddedViewRef<any>>();
-  private itemOffsets: { id: number; offset: number }[] = [];
+  private itemOffsets: { [key: number]: { index: number; offset: number } } =
+    {};
 
   ngOnInit(): void {
     this.setupInitialLoad();
@@ -59,13 +60,14 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
       this.vcr().clear();
       this.renderedViews.clear();
-      this.itemOffsets.forEach((el, i) => {
-        if (!this.contentData().find((data) => data.id == el.id)) {
-          const elHeight = this.itemOffsets[i].offset;
+
+      Object.keys(this.itemOffsets).forEach((key) => {
+        if (!this.contentData().find((data) => data.id == +key)) {
+          const elHeight = this.itemOffsets[+key].offset;
 
           this.getScrollParent().scrollTop -= elHeight;
 
-          this.itemOffsets.splice(i, 1);
+          delete this.itemOffsets[+key];
         }
       });
 
@@ -101,11 +103,9 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
     for (let i = 0; i < this.contentData().length; i++) {
       const itemTop = currentOffset;
-      const elIndex = this.itemOffsets.findIndex(
-        (el) => el.id === this.contentData()[i].id
-      );
 
-      const itemBottom = currentOffset + this.getItemHeight(elIndex);
+      const itemBottom =
+        currentOffset + this.getItemHeight(this.contentData()[i].id);
 
       const isVisible =
         itemBottom >= start - this.biggestElement &&
@@ -144,23 +144,22 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       if (!el) return;
 
       el.style.transform = `translateY(${this.calculateItemTop(i)}px)`;
-
       el.setAttribute('lazy-scroll-element', 'true');
 
       this.renderedViews.set(id, view);
-      this.itemOffsets[i] = {
-        id,
+      this.itemOffsets[id] = {
+        index: i,
         offset: el.offsetHeight || this.estimatedInitialHeight,
       };
 
       this.biggestElement = Math.max(
         this.biggestElement,
-        this.itemOffsets[i].offset
+        this.itemOffsets[id].offset
       );
 
       if (islast)
         this.lastElementEnd =
-          this.calculateItemTop(i) + this.itemOffsets[i].offset;
+          this.calculateItemTop(i) + this.itemOffsets[id].offset;
 
       this.calcAvarageHeight();
     });
@@ -168,8 +167,10 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
   private calcAvarageHeight() {
     this.estimatedInitialHeight = Math.ceil(
-      this.itemOffsets.reduce((sum, h) => sum + h.offset, 0) /
-        this.itemOffsets.length
+      Object.keys(this.itemOffsets).reduce(
+        (sum, h) => sum + this.itemOffsets[+h].offset,
+        0
+      ) / Object.keys(this.itemOffsets).length
     );
   }
 
@@ -184,11 +185,14 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
     }
   }
 
-  private calculateItemTop(id: number): number {
+  private calculateItemTop(i: number): number {
     let top = 0;
-    for (let i = 0; i < id; i++) {
-      top += this.getItemHeight(i);
-    }
+
+    Object.keys(this.itemOffsets).forEach((key) => {
+      if (i > this.itemOffsets[+key].index)
+        top += this.getItemHeight(+key);
+    });
+
     return top;
   }
 
@@ -197,8 +201,11 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   }
 
   private updateContainerHeight(isFirst = false): void {
-    const totalHeight = this.itemOffsets.reduce((sum, h) => sum + h.offset, 0);
-    if (this.itemOffsets.length == this.contentData().length) {
+    const totalHeight = Object.keys(this.itemOffsets).reduce(
+      (sum, h) => sum + this.itemOffsets[+h].offset,
+      0
+    );
+    if (Object.keys(this.itemOffsets).length == this.contentData().length) {
       if (this.lastElementEnd == 0) return;
       this.host.style.minHeight = `${this.lastElementEnd + 10}px`;
       this.host.style.maxHeight = `${this.lastElementEnd + 10}px`;
