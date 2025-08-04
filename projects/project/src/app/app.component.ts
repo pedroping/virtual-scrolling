@@ -14,7 +14,7 @@ export class AppComponent {
 
   data = signal(
     Array.from({ length: 60 }).map((_, i) => ({
-      data: 'Test ' + (i + 1),
+      data: 'Test ' + i,
       id: i,
     }))
   );
@@ -37,13 +37,13 @@ export class AppComponent {
     this.data.update((data) => {
       const lastId = Math.max(...data.map((d) => d.id)) + 1;
 
-      return [
-        {
-          data: 'Test ' + (lastId + 1),
-          id: lastId,
-        },
-        ...data,
-      ];
+      const newData = [...data];
+
+      newData.splice(10, 0, {
+        data: 'Test ' + lastId,
+        id: lastId,
+      });
+      return newData;
     });
   }
 
@@ -54,7 +54,7 @@ export class AppComponent {
       return [
         ...data,
         {
-          data: 'Test ' + (lastId + 1),
+          data: 'Test ' + lastId,
           id: lastId,
         },
       ];

@@ -26,21 +26,23 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   vcr = contentChild.required(TemplateRef, { read: ViewContainerRef });
 
   contentData = input.required<IElement<T>[]>();
+
   estimatedInitialHeight = 300;
   biggestElement = 300;
   lastHeight = 0;
   lastElementEnd = 0;
 
   private renderedViews = new Map<number, EmbeddedViewRef<any>>();
-  private itemOffsets: { [key: number]: { index: number; offset: number } } =
-    {};
+  private itemOffsets: {
+    [key: number]: { index: number; offset: number; hasToUpdate?: boolean };
+  } = {};
 
   ngOnInit(): void {
     this.setupInitialLoad();
     this.updateContainerHeight(true);
 
     fromEvent(this.getScrollParent(), 'scroll')
-      .pipe(auditTime(16))
+      .pipe(auditTime(20))
       .subscribe(() => this.handleScroll());
   }
 
@@ -53,7 +55,30 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
         this.vcr().clear();
         this.renderedViews.clear();
 
-        this.handleScroll();
+        this.contentData().forEach((data, i) => {
+          if (this.itemOffsets[data.id])
+            this.itemOffsets[data.id] = {
+              index: i,
+              offset:
+                this.itemOffsets[data.id]?.offset ||
+                this.estimatedInitialHeight,
+            };
+          else
+            this.itemOffsets[data.id] = {
+              index: i,
+              offset: this.estimatedInitialHeight,
+              hasToUpdate: true,
+            };
+        });
+
+        this.lastElementEnd = 0;
+
+        timer(10).subscribe(() => {
+          this.handleScroll();
+          this.getScrollParent().scrollTop +=
+            (change.currentValue.length - change.previousValue.length) *
+            this.estimatedInitialHeight;
+        });
 
         return;
       }
@@ -61,32 +86,41 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       this.vcr().clear();
       this.renderedViews.clear();
 
+      let heightToReduce = 0;
+
       Object.keys(this.itemOffsets).forEach((key) => {
         if (!this.contentData().find((data) => data.id == +key)) {
           const elHeight = this.itemOffsets[+key].offset;
 
-          this.getScrollParent().scrollTop -= elHeight;
+          heightToReduce += elHeight;
 
           delete this.itemOffsets[+key];
         }
       });
 
+      Object.keys(this.itemOffsets).forEach((key, i) => {
+        this.itemOffsets[+key].index = i;
+      });
+
+      this.getScrollParent().scrollTop -= heightToReduce;
       this.handleScroll();
     }
   }
 
-  private setupInitialLoad(): void {
+  private setupInitialLoad(onReset = false): void {
     const parent = this.getScrollParent();
     const viewportHeight = parent.offsetHeight;
     const initialCount = Math.ceil(
       viewportHeight / this.estimatedInitialHeight
     );
 
-    this.host.style.position = 'relative';
-    this.host.style.minHeight =
-      initialCount * this.estimatedInitialHeight + 'px';
-    this.host.style.maxHeight =
-      initialCount * this.estimatedInitialHeight + 'px';
+    if (!onReset) {
+      this.host.style.position = 'relative';
+      this.host.style.minHeight =
+        initialCount * this.estimatedInitialHeight + 'px';
+      this.host.style.maxHeight =
+        initialCount * this.estimatedInitialHeight + 'px';
+    }
 
     this.appendItems(0, initialCount);
   }
@@ -103,6 +137,15 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
     for (let i = 0; i < this.contentData().length; i++) {
       const itemTop = currentOffset;
+
+      if (this.itemOffsets[this.contentData()[i].id]?.hasToUpdate) {
+        this.renderItem(this.contentData()[i].id, i);
+        Object.keys(this.itemOffsets).forEach((key) => {
+          this.itemOffsets[+key].hasToUpdate = false;
+        });
+        this.handleScroll();
+        break;
+      }
 
       const itemBottom =
         currentOffset + this.getItemHeight(this.contentData()[i].id);
@@ -143,14 +186,14 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
       if (!el) return;
 
-      el.style.transform = `translateY(${this.calculateItemTop(i)}px)`;
-      el.setAttribute('lazy-scroll-element', 'true');
-
       this.renderedViews.set(id, view);
       this.itemOffsets[id] = {
         index: i,
         offset: el.offsetHeight || this.estimatedInitialHeight,
       };
+
+      el.style.transform = `translateY(${this.calculateItemTop(i)}px)`;
+      el.setAttribute('lazy-scroll-element', 'true');
 
       this.biggestElement = Math.max(
         this.biggestElement,
@@ -189,8 +232,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
     let top = 0;
 
     Object.keys(this.itemOffsets).forEach((key) => {
-      if (i > this.itemOffsets[+key].index)
-        top += this.getItemHeight(+key);
+      if (i > this.itemOffsets[+key].index) top += this.getItemHeight(+key);
     });
 
     return top;
@@ -205,8 +247,10 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       (sum, h) => sum + this.itemOffsets[+h].offset,
       0
     );
-    if (Object.keys(this.itemOffsets).length == this.contentData().length) {
-      if (this.lastElementEnd == 0) return;
+    if (
+      Object.keys(this.itemOffsets).length == this.contentData().length &&
+      this.lastElementEnd > 0
+    ) {
       this.host.style.minHeight = `${this.lastElementEnd + 10}px`;
       this.host.style.maxHeight = `${this.lastElementEnd + 10}px`;
       return;
