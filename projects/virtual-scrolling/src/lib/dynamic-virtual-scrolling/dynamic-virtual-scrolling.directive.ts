@@ -111,6 +111,20 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
     }
   }
 
+  updateElement(id: number, content: HTMLElement) {
+    const offset = this.itemOffsets[id];
+
+    if (!offset) return;
+
+    const elHeight = content.offsetHeight;
+
+    if (elHeight == offset.offset) return;
+    
+    offset.offset = elHeight;
+
+    this.handleScroll();
+  }
+
   private setupInitialLoad(onReset = false): void {
     const parent = this.getScrollParent();
     const viewportHeight = parent.offsetHeight;

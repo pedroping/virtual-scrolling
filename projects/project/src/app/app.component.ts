@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { DynamicVirtualScrollingDirective } from '@virtual-scrolling';
 
 @Component({
@@ -11,6 +16,10 @@ import { DynamicVirtualScrollingDirective } from '@virtual-scrolling';
 })
 export class AppComponent {
   title = 'project';
+
+  dynamicVirtualScrollingDirective = viewChild.required(
+    DynamicVirtualScrollingDirective
+  );
 
   data = signal(
     Array.from({ length: 60 }).map((_, i) => ({
@@ -59,6 +68,10 @@ export class AppComponent {
         },
       ];
     });
+  }
+
+  loadEvent(id: number, content: HTMLElement) {
+    this.dynamicVirtualScrollingDirective().updateElement(id, content);
   }
 }
 
