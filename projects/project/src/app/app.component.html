@@ -1,20 +1,19 @@
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
     @if(item.id % 2 == 0) {
-    <div class="data" [attr.elementId]="item.id" style="position: absolute;" #content>
+    <div class="data" [attr.elementId]="item.id" style="position: absolute" #content>
       <div class="inner">
         {{ item.data }}
         <img src="https://fastly.picsum.photos/id/491/300/300.jpg?hmac=nqxHz8st4gF72CiLOQovPViZnuvh7nKSmJjMwyfcmW8"
-          alt="img" (load)="loadEvent(item.id, content)">
+          alt="img" (load)="loadEvent(item.id, content)" />
       </div>
     </div>
     } @else {
-    <div class="data" [attr.elementId]="item.id" style="position: absolute;" #content>
+    <div class="data" [attr.elementId]="item.id" style="position: absolute" #content>
       <div class="inner">
         {{ item.data }}
-        <img src="
-https://fastly.picsum.photos/id/40/150/150.jpg?hmac=c2YAMDyKsHfnm0jZNncFU6ZcEBi-ML77TR3j8kQEQfY" alt="img"
-          (load)="loadEvent(item.id, content)">
+        <img src="https://fastly.picsum.photos/id/40/150/150.jpg?hmac=c2YAMDyKsHfnm0jZNncFU6ZcEBi-ML77TR3j8kQEQfY"
+          alt="img" (load)="loadEvent(item.id, content)" />
       </div>
     </div>
     }
@@ -28,8 +27,6 @@ https://fastly.picsum.photos/id/40/150/150.jpg?hmac=c2YAMDyKsHfnm0jZNncFU6ZcEBi-
   </div>
   }
 </div> -->
-
-
 
 <button (click)="changeData2()">Remove data Top</button>
 <button (click)="changeData()">Remove data Bottom</button>
