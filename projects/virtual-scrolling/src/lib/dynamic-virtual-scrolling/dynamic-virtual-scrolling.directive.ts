@@ -30,7 +30,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   contentData = input.required<IElement<T>[]>();
 
   estimatedInitialHeight = 300;
-  biggestElement = 350;
+  biggestElement = 150;
   lastHeight = 0;
   lastElementEnd = 0;
 
