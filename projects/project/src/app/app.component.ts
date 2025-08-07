@@ -28,6 +28,13 @@ export class AppComponent {
     }))
   );
 
+  constructor() {
+    self.addEventListener('fetch', (event) => {
+      // event.respondWith(fetch(event))
+      console.log(event);
+    });
+  }
+
   changeData() {
     this.data.update((data) => {
       data.pop();
@@ -71,7 +78,7 @@ export class AppComponent {
   }
 
   loadEvent(id: number, content: HTMLElement) {
-    this.dynamicVirtualScrollingDirective().updateElement(id, content);
+    this.dynamicVirtualScrollingDirective().updateElement(id);
   }
 }
 
