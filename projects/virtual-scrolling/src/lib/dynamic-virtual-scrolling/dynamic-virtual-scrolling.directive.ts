@@ -37,7 +37,11 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   private loadEvent$ = new Subject<number>();
   private renderedViews = new Map<number, EmbeddedViewRef<any>>();
   private itemOffsets: {
-    [key: number]: { index: number; offset: number; hasToUpdate?: boolean };
+    [key: number]: {
+      index: number;
+      offset: number;
+      hasToUpdate?: boolean;
+    };
   } = {};
 
   ngOnInit(): void {
@@ -73,10 +77,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
         this.lastElementEnd = 0;
         this.ngZone.onStable.pipe(take(1)).subscribe(() => this.handleScroll());
-
-        this.getScrollParent().scrollTop +=
-          (change.currentValue.length - change.previousValue.length) *
-          this.estimatedInitialHeight;
       }
 
       let heightToReduce = 0;
