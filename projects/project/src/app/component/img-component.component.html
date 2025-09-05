@@ -1,0 +1,15 @@
+@if(item().id % 2 == 0) {
+<div class="data" [attr.elementId]="item().id">
+  <div class="inner">
+    {{ item().data }}
+    <img src="https://picsum.photos/300" alt="img" (load)="loadEvent(item().id)" (error)="loadEvent(item().id )" />
+  </div>
+</div>
+} @else {
+<div class="data" [attr.elementId]="item().id">
+  <div class="inner">
+    {{ item().data }}
+    <img src="https://picsum.photos/200" alt="img" (load)="loadEvent(item().id )" (error)="loadEvent(item().id )" />
+  </div>
+</div>
+}

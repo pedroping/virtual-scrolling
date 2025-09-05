@@ -1,0 +1,31 @@
+:host {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: fit-content;
+  min-height: 150px;
+}
+
+.data {
+  height: fit-content;
+  width: 100%;
+  will-change: top;
+  padding: 5px 2px;
+  transform-origin: 0 0;
+
+  .inner {
+    height: 100%;
+    background-color: azure;
+    border-radius: 10px;
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 10px;
+
+    img {
+      max-width: 100%;
+    }
+  }
+}

@@ -1,47 +1,8 @@
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
-    @if(item.id % 2 == 0) {
-    <div class="data" [attr.elementId]="item.id" style="position: absolute" #content>
-      <div class="inner">
-        {{ item.data }}
-        <img src="https://picsum.photos/300" alt="img" (load)="loadEvent(item.id, content)"
-          (error)="loadEvent(item.id, content)" />
-      </div>
-    </div>
-    } @else {
-    <div class="data" [attr.elementId]="item.id" style="position: absolute" #content>
-      <div class="inner">
-        {{ item.data }}
-        <img src="https://picsum.photos/200" alt="img" (load)="loadEvent(item.id, content)"
-          (error)="loadEvent(item.id, content)" />
-      </div>
-    </div>
-    }
+    <app-img-component [item]="item" [dynamicVirtualScrollingDirective]="dynamicVirtualScrollingDirective()" />
   </ng-template>
 </div>
-
-<!-- <div class="virtual-scrolling" style="height: 100%;">
-  @for (item of data(); track $index) {
-  @if(item.id % 2 == 0) {
-  <div class="data" [attr.elementId]="item.id" style="position: absolute" #content>
-    <div class="inner">
-      {{ item.data }}
-      <img src="https://picsum.photos/300" alt="img" (load)="loadEvent(item.id, content)"
-        (error)="loadEvent(item.id, content)" />
-    </div>
-  </div>
-  } @else {
-  <div class="data" [attr.elementId]="item.id" style="position: absolute" #content>
-    <div class="inner">
-      {{ item.data }}
-      <img src="https://picsum.photos/200" alt="img" (load)="loadEvent(item.id, content)"
-        (error)="loadEvent(item.id, content)" />
-    </div>
-  </div>
-  }
-  }
-</div> -->
-
 <button (click)="changeData2()">Remove data Top</button>
 <button (click)="changeData()">Remove data Bottom</button>
 <button (click)="addData()">Add data Top</button>
