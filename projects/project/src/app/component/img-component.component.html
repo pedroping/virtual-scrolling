@@ -2,14 +2,14 @@
 <div class="data" [attr.elementId]="item().id">
   <div class="inner">
     {{ item().data }}
-    <img src="https://picsum.photos/300" alt="img" (load)="loadEvent(item().id)" (error)="loadEvent(item().id )" />
+    <img src="https://picsum.photos/300" alt="img" />
   </div>
 </div>
 } @else {
 <div class="data" [attr.elementId]="item().id">
   <div class="inner">
     {{ item().data }}
-    <img src="https://picsum.photos/200" alt="img" (load)="loadEvent(item().id )" (error)="loadEvent(item().id )" />
+    <img src="https://picsum.photos/200" alt="img" />
   </div>
 </div>
 }

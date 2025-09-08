@@ -1,6 +1,6 @@
 <div class="virtual-scrolling" appDynamicVirtualScrolling [contentData]="data()">
   <ng-template #tmp let-item="item">
-    <app-img-component [item]="item" [dynamicVirtualScrollingDirective]="dynamicVirtualScrollingDirective()" />
+    <app-img-component [item]="item" />
   </ng-template>
 </div>
 <button (click)="changeData2()">Remove data Top</button>

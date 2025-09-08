@@ -12,7 +12,7 @@ import {
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
-import { fromEvent, Subject } from 'rxjs';
+import { fromEvent } from 'rxjs';
 import { auditTime, take } from 'rxjs/operators';
 
 type IElement<T> = T & { id: number };
@@ -34,7 +34,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   lastHeight = 0;
   lastElementEnd = 0;
 
-  private loadEvent$ = new Subject<number>();
   private renderedViews = new Map<number, EmbeddedViewRef<any>>();
   private itemOffsets: {
     [key: number]: {
@@ -106,10 +105,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
         });
       }
     }
-  }
-
-  updateElement(id: number) {
-    this.loadEvent$.next(id);
   }
 
   private setupInitialLoad(onReset = false): void {
@@ -198,30 +193,49 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
     });
     this.renderedViews.set(id, view);
 
-    this.ngZone.onStable.pipe(take(1)).subscribe(() => {
-      this.setItemProperties(view!, id, i, isLast);
+    let initialHeight = this.estimatedInitialHeight;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if(!entry.contentRect.height) continue;
+
+        if (initialHeight != entry.contentRect.height) {
+          initialHeight = entry.contentRect.height;          
+          this.changeElementProperties(view, id, i, isLast);
+          return;
+        }
+      }
     });
 
-    const subscription = this.loadEvent$.subscribe((evId) => {
-      if (evId === id) {
-        subscription.unsubscribe();
-        this.setItemProperties(view!, id, i, isLast);
+    this.ngZone.onStable.pipe(take(1)).subscribe(() => {
+      const el = view.rootNodes.find(
+        (el) => el instanceof HTMLElement
+      ) as HTMLElement;
 
-        Object.keys(this.itemOffsets).forEach((key) => {
-          if (
-            this.itemOffsets[+key].index <= i ||
-            !this.renderedViews.get(+key)
-          )
-            return;
+      initialHeight = el.offsetHeight;
 
-          this.setItemProperties(
-            this.renderedViews.get(+key)!,
-            +key,
-            this.itemOffsets[+key].index,
-            false
-          );
-        });
-      }
+      observer.observe(el);
+    });
+  }
+
+  changeElementProperties(
+    view: EmbeddedViewRef<any>,
+    id: number,
+    i: number,
+    isLast: boolean
+  ) {
+    this.setItemProperties(view!, id, i, isLast);
+
+    Object.keys(this.itemOffsets).forEach((key) => {
+      if (this.itemOffsets[+key].index <= i || !this.renderedViews.get(+key))
+        return;
+
+      this.setItemProperties(
+        this.renderedViews.get(+key)!,
+        +key,
+        this.itemOffsets[+key].index,
+        false
+      );
     });
   }
 

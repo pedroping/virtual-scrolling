@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { DynamicVirtualScrollingDirective } from '@virtual-scrolling';
 import { ImgComponentComponent } from './component/img-component.component';
 
@@ -18,10 +13,6 @@ import { ImgComponentComponent } from './component/img-component.component';
 export class AppComponent {
   title = 'project';
 
-  dynamicVirtualScrollingDirective = viewChild.required(
-    DynamicVirtualScrollingDirective
-  );
-
   data = signal(
     Array.from({ length: 60 }).map((_, i) => ({
       data: 'Test ' + i,
@@ -29,12 +20,7 @@ export class AppComponent {
     }))
   );
 
-  constructor() {
-    self.addEventListener('fetch', (event) => {
-      // event.respondWith(fetch(event))
-      console.log(event);
-    });
-  }
+  constructor() {}
 
   changeData() {
     this.data.update((data) => {
