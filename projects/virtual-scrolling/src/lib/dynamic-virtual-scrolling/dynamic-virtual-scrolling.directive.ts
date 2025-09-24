@@ -12,7 +12,7 @@ import {
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
-import { fromEvent } from 'rxjs';
+import { fromEvent, timer } from 'rxjs';
 import { auditTime, take } from 'rxjs/operators';
 
 type IElement<T> = T & { id: number };
@@ -33,6 +33,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   biggestElement = 150;
   lastHeight = 0;
   lastElementEnd = 0;
+  scrollBlock = false;
 
   private renderedViews = new Map<number, EmbeddedViewRef<any>>();
   private itemOffsets: {
@@ -40,6 +41,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       index: number;
       offset: number;
       hasToUpdate?: boolean;
+      canRemove?: boolean;
     };
   } = {};
 
@@ -65,12 +67,14 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
               offset:
                 this.itemOffsets[data.id]?.offset ||
                 this.estimatedInitialHeight,
+              canRemove: true,
             };
           else
             this.itemOffsets[data.id] = {
               index: i,
               offset: this.estimatedInitialHeight,
               hasToUpdate: true,
+              canRemove: true,
             };
         });
 
@@ -184,6 +188,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
       this.ngZone.onStable.pipe(take(1)).subscribe(() => {
         this.setItemProperties(view!, id, i, isLast);
+        this.itemOffsets[id].canRemove = true;
       });
       return;
     }
@@ -197,10 +202,10 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        if(!entry.contentRect.height) continue;
+        if (!entry.contentRect.height) continue;
 
         if (initialHeight != entry.contentRect.height) {
-          initialHeight = entry.contentRect.height;          
+          initialHeight = entry.contentRect.height;
           this.changeElementProperties(view, id, i, isLast);
           return;
         }
@@ -213,8 +218,11 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       ) as HTMLElement;
 
       initialHeight = el.offsetHeight;
+      this.setItemProperties(view!, id, i, isLast);
 
       observer.observe(el);
+
+      this.itemOffsets[id].canRemove = true;
     });
   }
 
@@ -281,7 +289,11 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
   private detachItem(id: number) {
     const view = this.renderedViews.get(id);
-    if (!view) return;
+    const itemOffset = this.itemOffsets[id];
+
+    if (!view || !itemOffset) return;
+
+    if (!itemOffset?.canRemove) return;
 
     const el = view.rootNodes.find(
       (el) => el instanceof HTMLElement
@@ -334,7 +346,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       return;
     }
 
-    const diffHeight = Math.min(this.contentData().length / 4, 50);
+    const diffHeight = Math.min(this.contentData().length / 5, 15);
 
     if (isFirst) {
       this.lastHeight = totalHeight + diffHeight * this.estimatedInitialHeight;
@@ -346,14 +358,27 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
     if (
       Math.ceil(parent.offsetHeight + parent.scrollTop) >= parent.scrollHeight
     ) {
-      const moreSize = Math.min(
-        diffHeight * this.estimatedInitialHeight,
-        Math.ceil(totalHeight * 0.2)
-      );
-      this.lastHeight = totalHeight + moreSize;
+      if (this.scrollBlock) return;
 
-      this.host.style.minHeight = `${this.lastHeight}px`;
-      this.host.style.maxHeight = `${this.lastHeight}px`;
+      this.scrollBlock = true;
+
+      timer(100).subscribe(() => {
+        if (
+          Math.ceil(parent.offsetHeight + parent.scrollTop) <
+          parent.scrollHeight
+        )
+          return;
+
+        const moreSize = Math.min(
+          diffHeight * this.estimatedInitialHeight,
+          Math.ceil(totalHeight * 0.15)
+        );
+        this.lastHeight = totalHeight + moreSize;
+
+        this.host.style.minHeight = `${this.lastHeight}px`;
+        this.host.style.maxHeight = `${this.lastHeight}px`;
+        this.scrollBlock = false;
+      });
     }
   }
 
