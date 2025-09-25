@@ -14,7 +14,7 @@ export class AppComponent {
   title = 'project';
 
   data = signal(
-    Array.from({ length: 6000 }).map((_, i) => ({
+    Array.from({ length: 200 }).map((_, i) => ({
       data: 'Test ' + i,
       id: i,
     }))

@@ -79,6 +79,7 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
         });
 
         this.lastElementEnd = 0;
+        this.handleScroll();
         this.ngZone.onStable.pipe(take(1)).subscribe(() => this.handleScroll());
       }
 
@@ -103,9 +104,9 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       });
 
       if (heightToReduce > 0) {
+        this.handleScroll();
         this.ngZone.onStable.pipe(take(1)).subscribe(() => {
           this.handleScroll();
-          this.getScrollParent().scrollTop -= heightToReduce;
         });
       }
     }
