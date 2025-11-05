@@ -18,7 +18,7 @@ import { auditTime, take } from 'rxjs/operators';
 type IElement<T> = T & { id: number };
 
 @Directive({
-  selector: '[appDynamicVirtualScrolling]',
+  selector: '[dynamicVirtualScrolling]',
   standalone: true,
 })
 export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
@@ -27,7 +27,9 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
   templateRef = contentChild.required(TemplateRef);
   vcr = contentChild.required(TemplateRef, { read: ViewContainerRef });
 
-  contentData = input.required<IElement<T>[]>();
+  contentData = input.required<IElement<T>[]>({
+    alias: 'dynamicVirtualScrolling',
+  });
 
   estimatedInitialHeight = 300;
   biggestElement = 150;
@@ -101,9 +103,18 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       });
 
       this.handleScroll();
-      this.ngZone.onStable.pipe(take(1)).subscribe(() => {
-        this.handleScroll();
-      });
+      this.ngZone.onStable
+        .pipe(
+          take(
+            Math.max(
+              change.currentValue.length - change.previousValue.length,
+              1
+            )
+          )
+        )
+        .subscribe(() => {
+          this.handleScroll();
+        });
     }
   }
 
@@ -265,8 +276,6 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
       index: i,
       offset: height,
     };
-
-    console.log(this.calculateItemTop(i), i);
 
     el.style.transform = `translateY(${this.calculateItemTop(i)}px)`;
 
