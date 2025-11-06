@@ -58,63 +58,54 @@ export class DynamicVirtualScrollingDirective<T> implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['contentData']) {
-      const change = changes['contentData'];
+      const newContentData = this.contentData();
+      const oldItemOffsets = this.itemOffsets;
+      this.itemOffsets = {};
 
-      if (change.firstChange) return;
+      let hasNewItems = false;
 
-      if (change.previousValue.length < change.currentValue.length) {
-        this.contentData().forEach((data, i) => {
-          if (this.itemOffsets[data.id])
-            this.itemOffsets[data.id] = {
-              index: i,
-              offset:
-                this.itemOffsets[data.id]?.offset ||
-                this.estimatedInitialHeight,
-              canRemove: true,
-            };
-          else
-            this.itemOffsets[data.id] = {
-              index: i,
-              offset: this.estimatedInitialHeight,
-              hasToUpdate: true,
-              canRemove: true,
-            };
-        });
+      newContentData.forEach((data, i) => {
+        const existingOffset = oldItemOffsets[data.id]?.offset;
 
-        this.lastElementEnd = 0;
-        this.handleScroll();
-        this.ngZone.onStable.pipe(take(1)).subscribe(() => this.handleScroll());
-      }
+        const offset = existingOffset || this.estimatedInitialHeight;
 
-      Object.keys(this.itemOffsets).forEach((key) => {
-        if (!this.contentData().find((data) => data.id == +key)) {
-          const elToRemove = this.itemOffsets[+key];
+        this.itemOffsets[data.id] = {
+          index: i,
+          offset: offset,
+          hasToUpdate: existingOffset === undefined,
+          canRemove: true,
+        };
 
-          Object.keys(this.itemOffsets).forEach((key2) => {
-            if (this.itemOffsets[+key2].index > elToRemove.index)
-              this.itemOffsets[+key2].index -= 1;
-          });
-
-          const view = this.renderedViews.get(+key);
-          if (view) view.destroy();
-          this.renderedViews.delete(+key);
-          delete this.itemOffsets[+key];
+        if (existingOffset === undefined) {
+          hasNewItems = true;
         }
       });
 
-      this.handleScroll();
-      this.ngZone.onStable
-        .pipe(
-          take(
-            Math.max(
-              change.currentValue.length - change.previousValue.length,
-              1
-            )
-          )
-        )
-        .subscribe(() => {
+      if (changes['contentData'].firstChange) return;
+
+      Object.keys(oldItemOffsets).forEach((key) => {
+        const id = +key;
+        if (!this.itemOffsets[id]) {
+          const view = this.renderedViews.get(id);
+          if (view) view.destroy();
+          this.renderedViews.delete(id);
+        }
+      });
+
+      if (
+        hasNewItems ||
+        newContentData.length < changes['contentData'].previousValue.length
+      ) {
+        this.lastElementEnd = 0;
+
+        this.handleScroll();
+
+        this.ngZone.onStable.pipe(take(1)).subscribe(() => {
           this.handleScroll();
         });
+      } else {
+        this.handleScroll();
+      }
     }
   }
 
