@@ -1,5 +1,9 @@
-<div class="virtual-scrolling" appStaticVirtualScrolling>
-  @for (item of data; track $index) {
-  <app-test-component *appStaticElement [data]="item.data"  />
-  }
+<div class="virtual-scrolling" [dynamicVirtualScrolling]="data()">
+  <ng-template #tmp let-item="item">
+    <app-img-component [item]="item" />
+  </ng-template>
 </div>
+<button (click)="changeData2()">Remove data Top</button>
+<button (click)="changeData()">Remove data Bottom</button>
+<button (click)="addData()">Add data Top</button>
+<button (click)="addData2()">Add data Bottom</button>
